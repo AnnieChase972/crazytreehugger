@@ -10,20 +10,36 @@ import (
 func main() {
 	s := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(s)
-	ans := r.Intn(73)
-	fmt.Println(ans)
-	fmt.Print("enter guess: ")
-	var input string
-	fmt.Scanln(&input)
-	guess, err := strconv.Atoi(input)
-	if err != nil {
-		fmt.Println(err)
-		return
+	low := 0
+	high := 50
+	ans := r.Intn(high-low+1) + low
+	i := 1
+	for i <= 5 {
+		fmt.Printf("enter guess between %d and %d: ", low, high)
+		var input string
+		fmt.Scanln(&input)
+		guess, err := strconv.Atoi(input)
+		switch {
+		case err != nil:
+			fmt.Println(err)
+			continue
+		case guess > high:
+			fmt.Println("too high")
+			continue
+		case guess < low:
+			fmt.Println("too low")
+			continue
+		case guess == ans:
+			fmt.Println("GREAT JOB")
+			return
+		case guess < ans:
+			fmt.Println("higher")
+			low = guess + 1
+		case guess > ans:
+			fmt.Println("lower")
+			high = guess - 1
+		}
+		i = i + 1
 	}
-	fmt.Println(guess)
-	if guess == ans {
-		fmt.Println("GREAT JOB")
-	} else {
-		fmt.Println("YOU SUCK AT THIS")
-	}
+	fmt.Println("YOU SUCK AT THIS")
 }
