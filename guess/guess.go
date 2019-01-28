@@ -14,7 +14,7 @@ func main() {
 	high := 50
 	ans := r.Intn(high-low+1) + low
 	i := 1
-	for i <= 5 {
+	for i <= 7 {
 		fmt.Printf("enter guess between %d and %d: ", low, high)
 		var input string
 		fmt.Scanln(&input)
