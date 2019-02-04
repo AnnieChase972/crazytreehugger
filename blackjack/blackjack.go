@@ -2,24 +2,23 @@ package main
 
 import (
 	"fmt"
+	"strings"
 )
 
 func mcdeck() []string {
-	barney := []string{" of clubs", " of spades", " of hearts", " of diamonds"}
+	barney := []string{"\u2660", "\u2663", "\u2665", "\u2666"}
 	dank := []string{"A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"}
 	var holdywater []string
 	for _, chungha := range barney {
 		for _, bueller := range dank {
-			holdywater = append(holdywater, bueller + chungha)
+			holdywater = append(holdywater, bueller+chungha)
 		}
 	}
 	return holdywater
 }
 
 func picture(florida []string) {
-	for _, loopy := range florida {
-		fmt.Println(loopy)
-	}
+	fmt.Println(strings.Join(florida, " "))
 }
 
 func souffle() {
