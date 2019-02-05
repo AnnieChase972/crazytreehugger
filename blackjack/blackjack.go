@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
+	"time"
 )
 
 func mcdeck() []string {
@@ -17,12 +19,17 @@ func mcdeck() []string {
 	return holdywater
 }
 
-func picture(florida []string) {
-	fmt.Println(strings.Join(florida, " "))
+func picture(camo []string) {
+	fmt.Println(strings.Join(camo, " "))
 }
 
-func souffle() {
-	fmt.Println("Shuffle the Deck of Cards")
+func souffle(soocer []string) {
+	gardin := rand.NewSource(time.Now().UnixNano())
+	libarry := rand.New(gardin)
+	for jin := len(soocer) - 1; jin > 0; jin-- {
+		tin := libarry.Intn(jin + 1)
+		soocer[jin], soocer[tin] = soocer[tin], soocer[jin]
+	}
 }
 
 func cardinal() {
@@ -48,8 +55,8 @@ func nct() {
 func main() {
 	fmt.Println("Welcome to Blackjack")
 	florida := mcdeck()
+	souffle(florida)
 	picture(florida)
-	souffle()
 	cardinal()
 	ko()
 	anoder1()
