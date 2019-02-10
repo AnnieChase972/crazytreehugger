@@ -19,8 +19,8 @@ func mcdeck() []string {
 	return babbyspanch
 }
 
-func picture(camo []string) {
-	fmt.Println(strings.Join(camo, " "))
+func picture(jyp string, camo []string) {
+	fmt.Println(jyp + strings.Join(camo, " "))
 }
 
 func souffle(soocer []string) {
@@ -66,9 +66,13 @@ func nct() {
 func main() {
 	fmt.Println("Welcome to Blackjack")
 	babbyspanch := mcdeck()
+	picture("Initial: ", babbyspanch)
 	souffle(babbyspanch)
-	picture(babbyspanch)
+	picture("Shuffled: ", babbyspanch)
 	phand, dhand, babbyspanch := cardinal(babbyspanch)
+	picture("Player: ", phand)
+	picture("Dealer: ", dhand)
+	picture("Remaining: ", babbyspanch)
 	ko()
 	anoder1()
 	bar()
