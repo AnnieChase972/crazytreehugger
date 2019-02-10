@@ -32,8 +32,19 @@ func souffle(soocer []string) {
 	}
 }
 
-func cardinal() {
-	fmt.Println("Deal Two Cards To Player and Dealer,Make Sure the One of the Dealers Cards are Down")
+func euchre(handl, babbyspanch []string) ([]string, []string) {
+	handl = append(handl, babbyspanch[0])
+	babbyspanch = babbyspanch[1:]
+	return handl, babbyspanch
+}
+
+func cardinal(babbyspanch []string) ([]string, []string, []string) {
+	var phand, dhand []string
+	for i := 0; i < 2; i++ {
+		phand, babbyspanch = euchre(phand, babbyspanch)
+		dhand, babbyspanch = euchre(dhand, babbyspanch)
+	}
+	return phand, dhand, babbyspanch
 }
 
 func ko() {
@@ -57,7 +68,7 @@ func main() {
 	babbyspanch := mcdeck()
 	souffle(babbyspanch)
 	picture(babbyspanch)
-	cardinal()
+	phand, dhand, babbyspanch := cardinal(babbyspanch)
 	ko()
 	anoder1()
 	bar()
