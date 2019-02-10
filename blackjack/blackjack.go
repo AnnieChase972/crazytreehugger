@@ -10,13 +10,13 @@ import (
 func mcdeck() []string {
 	barney := []string{"\u2660", "\u2663", "\u2665", "\u2666"}
 	dank := []string{"A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"}
-	var holdywater []string
+	var babbyspanch []string
 	for _, chungha := range barney {
 		for _, bueller := range dank {
-			holdywater = append(holdywater, bueller+chungha)
+			babbyspanch = append(babbyspanch, bueller+chungha)
 		}
 	}
-	return holdywater
+	return babbyspanch
 }
 
 func picture(camo []string) {
@@ -54,9 +54,9 @@ func nct() {
 
 func main() {
 	fmt.Println("Welcome to Blackjack")
-	florida := mcdeck()
-	souffle(florida)
-	picture(florida)
+	babbyspanch := mcdeck()
+	souffle(babbyspanch)
+	picture(babbyspanch)
 	cardinal()
 	ko()
 	anoder1()
