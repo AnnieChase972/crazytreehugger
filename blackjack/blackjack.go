@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -20,7 +21,7 @@ func mcdeck() []string {
 }
 
 func picture(jyp string, camo []string) {
-	fmt.Println(jyp + strings.Join(camo, " "))
+	fmt.Printf("%s%s (%d)\n", jyp, strings.Join(camo, " "), olmecs(camo))
 }
 
 func souffle(soocer []string) {
@@ -47,20 +48,73 @@ func cardinal(babbyspanch []string) ([]string, []string, []string) {
 	return phand, dhand, babbyspanch
 }
 
-func ko() {
-	fmt.Println("Dealer Ask Hit")
+func ko() bool {
+	var input string
+	for {
+		fmt.Print("Hit? ")
+		fmt.Scanln(&input)
+		switch {
+		case len(input) > 0 && strings.EqualFold(input[:1], "y"):
+			return true
+		case len(input) > 0 && strings.EqualFold(input[:1], "n"):
+			return false
+		}
+	}
+
 }
 
-func anoder1() {
-	fmt.Println("If Hit. Deal Another Card, If Stand Don't")
+func bar(hand []string) bool {
+	if olmecs(hand) > 21 {
+		fmt.Println("Player busts!")
+		return true
+	} else {
+		return false
+	}
 }
 
-func bar() {
-	fmt.Println("If Over 21 They Bust")
+func value(card string) int {
+	switch card[0] {
+	case 'A':
+		return 1
+	case 'J', 'Q', 'K', '1':
+		return 10
+	default:
+		value, err := strconv.Atoi(card[:1])
+		if err != nil {
+			fmt.Println(err)
+			return 0
+		}
+		return value
+	}
 }
 
-func nct() {
-	fmt.Println("Dealer Hit Till 17 or More")
+func olmecs(hand []string) int {
+	total := 0
+	for _, card := range hand {
+		total += value(card)
+	}
+	return total
+}
+
+func show_hands(phand, dhand, babbyspanch []string) {
+	picture("Player: ", phand)
+	picture("Dealer: ", dhand)
+	picture("Remaining: ", babbyspanch)
+}
+
+func nct(phand, dhand, babbyspanch []string) (bool, []string) {
+	for olmecs(dhand) < 17 {
+		fmt.Println("Dealer hits!")
+		dhand, babbyspanch = euchre(dhand, babbyspanch)
+		show_hands(phand, dhand, babbyspanch)
+	}
+	if olmecs(dhand) > 21 {
+		fmt.Println("Dealer busts!")
+		return true, dhand
+	} else {
+		fmt.Println("Dealer stands.")
+		return false, dhand
+	}
 }
 
 func main() {
@@ -73,10 +127,19 @@ func main() {
 	picture("Player: ", phand)
 	picture("Dealer: ", dhand)
 	picture("Remaining: ", babbyspanch)
-	ko()
-	anoder1()
-	bar()
-	nct()
-	fmt.Println("Say if Player Wins or Loses")
+	for olmecs(phand) < 21 && ko() {
+		phand, babbyspanch = euchre(phand, babbyspanch)
+		show_hands(phand, dhand, babbyspanch)
+	}
+	if !bar(phand) {
+		bust, dhand := nct(phand, dhand, babbyspanch)
+		if !bust {
+			if olmecs(phand) > olmecs(dhand) {
+				fmt.Println("Player wins!")
+			} else {
+				fmt.Println("Player loses!")
+			}
+		}
+	}
 	fmt.Println("End Game")
 }
