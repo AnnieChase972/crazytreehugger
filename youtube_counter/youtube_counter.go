@@ -1,9 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/buger/jsonparser"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -29,43 +29,54 @@ func fetch_url(url string) ([]byte, error) {
 	return body, nil
 }
 
-func video_views(id string) (uint64, error) {
+func video_stats(id string) ([]byte, error) {
 	api_key := os.Getenv("YOUTUBE_API_KEY")
-
 	if api_key == "" {
-		return 0, errors.New("YOUTUBE_API_KEY environment variable not set!")
+		return nil, errors.New("YOUTUBE_API_KEY environment variable not set!\n")
 	}
 
 	url := fmt.Sprintf("%s/videos?part=statistics&id=%s&key=%s", endpoint, id, api_key)
 
-	body, err := fetch_url(url)
+	json, err := fetch_url(url)
 	if err != nil {
-		return 0, fmt.Errorf("Error fetching YouTube URL: %v", err)
+		return nil, fmt.Errorf("Error fetching YouTube URL: %v\n", err)
 	}
 
-	type Result struct {
-		ViewCount string
-	}
+	return json, nil
+}
 
-	var result Result
-
-	err = json.Unmarshal(body, &result)
+func get_stat(json []byte, stat string) (int64, error) {
+	s, err := jsonparser.GetUnsafeString(json, "items", "[0]", "statistics", stat)
 	if err != nil {
-		return 0, fmt.Errorf("Error parsing JSON result: %v", err)
+		return 0, fmt.Errorf("Error parsing JSON result for statistic \"%s\": %v\n%s\n", stat, err, json)
 	}
 
-	count, err := strconv.ParseUint(result.ViewCount, 10, 64)
+	i, err := strconv.ParseInt(s, 0, 64)
 	if err != nil {
-		return 0, fmt.Errorf("Error converting string \"%s\" to uint64: %v", result.ViewCount, err)
+		return 0, fmt.Errorf("Error converting %s \"%s\" into int64: %v", stat, s, err)
 	}
 
-	return count, nil
+	return i, nil
+}
+
+func video_views(id string) (int64, error) {
+	json, err := video_stats(video_id)
+	if err != nil {
+		return 0, err
+	}
+
+	views, err := get_stat(json, "viewCount")
+	if err != nil {
+		return 0, err
+	}
+
+	return views, nil
 }
 
 func main() {
 	views, err := video_views(video_id)
 	if err != nil {
-		fmt.Printf("ERROR: %v", err)
+		fmt.Printf("ERROR: %v\n", err)
 		os.Exit(1)
 	}
 
