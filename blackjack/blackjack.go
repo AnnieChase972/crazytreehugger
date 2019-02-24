@@ -105,17 +105,22 @@ func olmecs(hand []string) int {
 	return total
 }
 
-func show_hands(phand, dhand, babbyspanch []string) {
+func show_hands(phand, dhand, babbyspanch []string, hide bool) {
 	picture("Player: ", phand)
-	picture("Dealer: ", dhand)
-	picture("Remaining: ", babbyspanch)
+	if hide {
+		picture("Dealer: ?? ", dhand[1:])
+	} else {
+		picture("Dealer: ", dhand)
+	}
 }
 
 func nct(phand, dhand, babbyspanch []string) (bool, []string) {
+	fmt.Println("")
+	show_hands(phand, dhand, babbyspanch, false)
 	for olmecs(dhand) < 17 {
 		fmt.Println("Dealer hits!")
 		dhand, babbyspanch = euchre(dhand, babbyspanch)
-		show_hands(phand, dhand, babbyspanch)
+		show_hands(phand, dhand, babbyspanch, false)
 	}
 	if olmecs(dhand) > 21 {
 		fmt.Println("Dealer busts!")
@@ -129,16 +134,12 @@ func nct(phand, dhand, babbyspanch []string) (bool, []string) {
 func main() {
 	fmt.Println("Welcome to Blackjack")
 	babbyspanch := mcdeck()
-	picture("Initial: ", babbyspanch)
 	souffle(babbyspanch)
-	picture("Shuffled: ", babbyspanch)
 	phand, dhand, babbyspanch := cardinal(babbyspanch)
-	picture("Player: ", phand)
-	picture("Dealer: ", dhand)
-	picture("Remaining: ", babbyspanch)
+	show_hands(phand, dhand, babbyspanch, true)
 	for olmecs(phand) < 21 && ko() {
 		phand, babbyspanch = euchre(phand, babbyspanch)
-		show_hands(phand, dhand, babbyspanch)
+		show_hands(phand, dhand, babbyspanch, true)
 	}
 	if !bar(phand) {
 		bust, dhand := nct(phand, dhand, babbyspanch)
