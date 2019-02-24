@@ -132,24 +132,38 @@ func nct(phand, dhand, babbyspanch []string) (bool, []string) {
 }
 
 func main() {
+	var phand []string
+	var dhand []string
 	fmt.Println("Welcome to Blackjack")
 	babbyspanch := mcdeck()
 	souffle(babbyspanch)
-	phand, dhand, babbyspanch := cardinal(babbyspanch)
-	show_hands(phand, dhand, babbyspanch, true)
-	for olmecs(phand) < 21 && ko() {
-		phand, babbyspanch = euchre(phand, babbyspanch)
+	wins := 0
+	losses := 0
+	for len(babbyspanch) >= 26 {
+		fmt.Printf("\n(%d cards left)\n", len(babbyspanch))
+		phand, dhand, babbyspanch = cardinal(babbyspanch)
 		show_hands(phand, dhand, babbyspanch, true)
-	}
-	if !bar(phand) {
-		bust, dhand := nct(phand, dhand, babbyspanch)
-		if !bust {
-			if olmecs(phand) > olmecs(dhand) {
-				fmt.Println("Player wins!")
+		for olmecs(phand) < 21 && ko() {
+			phand, babbyspanch = euchre(phand, babbyspanch)
+			show_hands(phand, dhand, babbyspanch, true)
+		}
+		if bar(phand) {
+			losses++
+		} else {
+			bust, dhand := nct(phand, dhand, babbyspanch)
+			if bust {
+				wins++
 			} else {
-				fmt.Println("Player loses!")
+				if olmecs(phand) > olmecs(dhand) {
+					fmt.Println("Player wins!")
+					wins++
+				} else {
+					fmt.Println("Player loses!")
+					losses++
+				}
 			}
 		}
+		fmt.Printf("\nWins: %d\nLosses: %d\n", wins, losses)
 	}
-	fmt.Println("End Game")
+	fmt.Println("\nEnd Game")
 }
