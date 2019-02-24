@@ -90,8 +90,17 @@ func value(card string) int {
 
 func olmecs(hand []string) int {
 	total := 0
+	aces := 0
 	for _, card := range hand {
-		total += value(card)
+		val := value(card)
+		total += val
+		if val == 1 {
+			aces++
+		}
+	}
+	for aces > 0 && total < 12 {
+		total += 10
+		aces--
 	}
 	return total
 }
