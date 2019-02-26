@@ -12,7 +12,16 @@ import (
 
 const endpoint = "https://www.googleapis.com/youtube/v3"
 const api_key_variable string = "YOUTUBE_API_KEY"
-const video_id string = "IHNzOHi8sJs"
+
+var video_ids = []string{
+	"IHNzOHi8sJs",
+	"dISNgvVpWlo",
+	"Amq-qlqbjYA",
+	"bwmSjveL3Lc",
+	"FzVR_fymZw4",
+	"9pdj4iJD08s",
+	"b73BI9eUkjM",
+}
 
 func fetch_url(url string) ([]byte, error) {
 	resp, err := http.Get(url)
@@ -60,7 +69,7 @@ func get_stat(json []byte, stat string) (int64, error) {
 }
 
 func video_views(id string) (int64, error) {
-	json, err := video_stats(video_id)
+	json, err := video_stats(id)
 	if err != nil {
 		return 0, err
 	}
@@ -74,11 +83,13 @@ func video_views(id string) (int64, error) {
 }
 
 func main() {
-	views, err := video_views(video_id)
-	if err != nil {
-		fmt.Printf("ERROR: %v\n", err)
-		os.Exit(1)
-	}
+	for _, video_id := range video_ids {
+		views, err := video_views(video_id)
+		if err != nil {
+			fmt.Printf("ERROR: %v\n", err)
+			os.Exit(1)
+		}
 
-	fmt.Printf("%d\n", views)
+		fmt.Printf("%d\n", views)
+	}
 }
