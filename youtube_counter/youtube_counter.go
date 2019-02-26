@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"github.com/buger/jsonparser"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 )
 
 const endpoint = "https://www.googleapis.com/youtube/v3"
@@ -82,14 +84,47 @@ func video_views(id string) (int64, error) {
 	return views, nil
 }
 
-func main() {
-	for _, video_id := range video_ids {
-		views, err := video_views(video_id)
-		if err != nil {
-			fmt.Printf("ERROR: %v\n", err)
-			os.Exit(1)
-		}
+func append_to_file(file string, data []byte) error {
+	// If the file doesn't exist, create it, or append to the file
+	f, err := os.OpenFile(file, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
 
-		fmt.Printf("%d\n", views)
+	if _, err := f.Write(data); err != nil {
+		f.Close()
+		return err
+	}
+
+	if err := f.Close(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func main() {
+	interval := 5 * time.Minute
+	t := time.Now()
+	for {
+		// Sleep until the next interval.
+		t = t.Truncate(interval).Add(interval)
+		time.Sleep(t.Sub(time.Now()))
+
+		for _, video_id := range video_ids {
+			var data string
+
+			views, err := video_views(video_id)
+			if err != nil {
+				data = fmt.Sprintf("%s\t%s\tERROR: %v\n", t.Format(time.RFC3339), video_id, err)
+			} else {
+				data = fmt.Sprintf("%s\t%s\t%d\n", t.Format(time.RFC3339), video_id, views)
+			}
+
+			fmt.Print(data)
+			if err = append_to_file(video_id+".log", []byte(data)); err != nil {
+				log.Fatal(err)
+			}
+		}
 	}
 }
