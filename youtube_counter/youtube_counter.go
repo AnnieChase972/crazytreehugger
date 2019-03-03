@@ -1,16 +1,19 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"github.com/buger/jsonparser"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"time"
 )
+
+const scrape_url = "https://www.youtube.com/watch?v="
+var scrape_regex = regexp.MustCompile(`\\"viewCount\\":\\"(\d+)\\"`)
 
 const endpoint = "https://www.googleapis.com/youtube/v3"
 const api_key_variable string = "YOUTUBE_API_KEY"
@@ -40,12 +43,7 @@ func fetch_url(url string) ([]byte, error) {
 	return body, nil
 }
 
-func video_stats(id string) ([]byte, error) {
-	api_key := os.Getenv("YOUTUBE_API_KEY")
-	if api_key == "" {
-		return nil, errors.New("YOUTUBE_API_KEY environment variable not set!\n")
-	}
-
+func video_stats(id string, api_key string) ([]byte, error) {
 	url := fmt.Sprintf("%s/videos?part=statistics&id=%s&key=%s", endpoint, id, api_key)
 
 	json, err := fetch_url(url)
@@ -56,32 +54,75 @@ func video_stats(id string) ([]byte, error) {
 	return json, nil
 }
 
-func get_stat(json []byte, stat string) (int64, error) {
+func get_stat(json []byte, stat string) (string, error) {
 	s, err := jsonparser.GetUnsafeString(json, "items", "[0]", "statistics", stat)
 	if err != nil {
-		return 0, fmt.Errorf("Error parsing JSON result for statistic \"%s\": %v\n%s\n", stat, err, json)
+		return "", fmt.Errorf("Error parsing JSON result for statistic \"%s\": %v\n%s\n", stat, err, json)
 	}
 
-	i, err := strconv.ParseInt(s, 0, 64)
-	if err != nil {
-		return 0, fmt.Errorf("Error converting %s \"%s\" into int64: %v", stat, s, err)
-	}
-
-	return i, nil
+	return s, nil
 }
 
-func video_views(id string) (int64, error) {
-	json, err := video_stats(id)
+func api_views(id string, api_key string) (string, error) {
+	json, err := video_stats(id, api_key)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 
 	views, err := get_stat(json, "viewCount")
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 
 	return views, nil
+}
+
+func scrape_views(id string) (string, error) {
+	url := scrape_url + id
+
+	data, err := fetch_url(url)
+	if err != nil {
+		return "", fmt.Errorf("Error fetching YouTube URL: %v\n", err)
+	}
+
+	match := scrape_regex.FindSubmatch(data)
+	if match == nil {
+		return "", fmt.Errorf("Couldn't scrape viewCount from URL: \"%s\"\n%s", url, data)
+	}
+
+	return string(match[1]), nil
+}
+
+func fetch_views(id string, api_key string) (string, error) {
+	if api_key != "" {
+		s, err := api_views(id, api_key)
+		if err == nil {
+			return s, nil
+		}
+
+		s, err2 := scrape_views(id)
+		if err2 == nil {
+			return s, nil
+		}
+
+		return "", fmt.Errorf("%v%v", err, err2)
+	} else {
+		return scrape_views(id)
+	}
+}
+
+func video_views(id string, api_key string) (int64, error) {
+	s, err := fetch_views(id, api_key)
+	if err != nil {
+		return 0, err
+	}
+
+	i, err := strconv.ParseInt(s, 0, 64)
+	if err != nil {
+		return 0, fmt.Errorf("Error converting viewCount \"%s\" into int64: %v", s, err)
+	}
+
+	return i, nil
 }
 
 func append_to_file(file string, data []byte) error {
@@ -104,6 +145,13 @@ func append_to_file(file string, data []byte) error {
 }
 
 func main() {
+	api_key := os.Getenv("YOUTUBE_API_KEY")
+	if api_key != "" {
+		fmt.Printf("Using YouTube API key: \"%s\"\n", api_key)
+	} else {
+		fmt.Println("Scraping YouTube pages instead of using API calls.")
+	}
+
 	interval := 5 * time.Minute
 	t := time.Now()
 	for {
@@ -114,7 +162,7 @@ func main() {
 		for _, video_id := range video_ids {
 			var data string
 
-			views, err := video_views(video_id)
+			views, err := video_views(video_id, api_key)
 			if err != nil {
 				data = fmt.Sprintf("%s\t%s\tERROR: %v\n", t.Format(time.RFC3339), video_id, err)
 			} else {
