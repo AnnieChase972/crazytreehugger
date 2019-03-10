@@ -13,19 +13,46 @@ import (
 )
 
 const scrape_url = "https://www.youtube.com/watch?v="
+
 var scrape_regex = regexp.MustCompile(`\\"viewCount\\":\\"(\d+)\\"`)
 
 const endpoint = "https://www.googleapis.com/youtube/v3"
 const api_key_variable string = "YOUTUBE_API_KEY"
 
-var video_ids = []string{
-	"IHNzOHi8sJs",
-	"dISNgvVpWlo",
-	"Amq-qlqbjYA",
-	"bwmSjveL3Lc",
-	"FzVR_fymZw4",
-	"9pdj4iJD08s",
-	"b73BI9eUkjM",
+type video struct {
+	id    string
+	title string
+}
+
+var videos = []video{
+	video{
+		id:    "IHNzOHi8sJs",
+		title: "Ddu du-Ddu du",
+	},
+	video{
+		id:    "dISNgvVpWlo",
+		title: "Whistle",
+	},
+	video{
+		id:    "Amq-qlqbjYA",
+		title: "As If It's Your Last",
+	},
+	video{
+		id:    "bwmSjveL3Lc",
+		title: "Boombayah",
+	},
+	video{
+		id:    "FzVR_fymZw4",
+		title: "Stay",
+	},
+	video{
+		id:    "9pdj4iJD08s",
+		title: "Playing With Fire",
+	},
+	video{
+		id:    "b73BI9eUkjM",
+		title: "Solo",
+	},
 }
 
 func fetch_url(url string) ([]byte, error) {
@@ -159,18 +186,18 @@ func main() {
 		t = t.Truncate(interval).Add(interval)
 		time.Sleep(t.Sub(time.Now()))
 
-		for _, video_id := range video_ids {
+		for _, v := range videos {
 			var data string
 
-			views, err := video_views(video_id, api_key)
+			views, err := video_views(v.id, api_key)
 			if err != nil {
-				data = fmt.Sprintf("%s\t%s\tERROR: %v\n", t.Format(time.RFC3339), video_id, err)
+				data = fmt.Sprintf("%s\t%s\tERROR: %v\n", t.Format(time.RFC3339), v.id, err)
 			} else {
-				data = fmt.Sprintf("%s\t%s\t%d\n", t.Format(time.RFC3339), video_id, views)
+				data = fmt.Sprintf("%s\t%s\t%d\t%s\n", t.Format(time.RFC3339), v.id, views, v.title)
 			}
 
 			fmt.Print(data)
-			if err = append_to_file(video_id+".log", []byte(data)); err != nil {
+			if err = append_to_file(v.id+".log", []byte(data)); err != nil {
 				log.Fatal(err)
 			}
 		}
