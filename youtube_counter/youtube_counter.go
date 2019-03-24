@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"time"
 )
@@ -23,6 +24,8 @@ const api_key_variable string = "YOUTUBE_API_KEY"
 type video struct {
 	id    string
 	title string
+	views int64
+	when  time.Time
 }
 
 var videos = []video{
@@ -205,11 +208,38 @@ func gather() error {
 	}
 }
 
+func max() error {
+	api_key := os.Getenv("YOUTUBE_API_KEY")
+	for i := range videos {
+		var err error
+
+		v := &videos[i]
+		v.when = time.Now()
+		v.views, err = video_views(v.id, api_key)
+		if err != nil {
+			return fmt.Errorf("Error on video %s (%s): %v\n", v.id, v.title, err)
+		}
+	}
+
+	sorted := videos
+	sort.Slice(sorted, func(i, j int) bool { return videos[j].views < videos[i].views })
+
+	for _, v := range sorted {
+		fmt.Printf("%s\t%s\t%d\t%s\n", v.when.Format(time.RFC3339), v.id, v.views, v.title)
+	}
+	return nil
+}
+
 func main() {
 	gatherPtr := flag.Bool("gather", false, "gather data")
+	maxPtr := flag.Bool("max", false, "sort by max views")
 	flag.Parse()
 	if *gatherPtr {
 		if err := gather(); err != nil {
+			log.Fatal(err)
+		}
+	} else if *maxPtr {
+		if err := max(); err != nil {
 			log.Fatal(err)
 		}
 	} else {
