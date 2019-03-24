@@ -234,15 +234,16 @@ func main() {
 	gatherPtr := flag.Bool("gather", false, "gather data")
 	maxPtr := flag.Bool("max", false, "sort by max views")
 	flag.Parse()
-	if *gatherPtr {
+	switch {
+	case *gatherPtr:
 		if err := gather(); err != nil {
 			log.Fatal(err)
 		}
-	} else if *maxPtr {
+	case *maxPtr:
 		if err := max(); err != nil {
 			log.Fatal(err)
 		}
-	} else {
+	default:
 		flag.Usage()
 		os.Exit(1)
 	}
