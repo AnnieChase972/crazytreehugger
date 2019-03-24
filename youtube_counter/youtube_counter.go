@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/buger/jsonparser"
 	"io/ioutil"
@@ -171,7 +172,7 @@ func append_to_file(file string, data []byte) error {
 	return nil
 }
 
-func main() {
+func gather() error {
 	api_key := os.Getenv("YOUTUBE_API_KEY")
 	if api_key != "" {
 		fmt.Printf("Using YouTube API key: \"%s\"\n", api_key)
@@ -198,8 +199,21 @@ func main() {
 
 			fmt.Print(data)
 			if err = append_to_file(v.id+".log", []byte(data)); err != nil {
-				log.Fatal(err)
+				return err
 			}
 		}
+	}
+}
+
+func main() {
+	gatherPtr := flag.Bool("gather", false, "gather data")
+	flag.Parse()
+	if *gatherPtr {
+		if err := gather(); err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		flag.Usage()
+		os.Exit(1)
 	}
 }
