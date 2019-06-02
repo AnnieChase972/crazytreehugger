@@ -16,13 +16,13 @@ import (
 	"time"
 )
 
-const scrape_url = "https://www.youtube.com/watch?v="
+const scrapeURL = "https://www.youtube.com/watch?v="
 
-var scrape_regex = regexp.MustCompile(`\\"viewCount\\":\\"(\d+)\\"`)
-var parse_regex = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})\t[^\t]*\t(\d+)($|\t)`)
+var scrapeRegex = regexp.MustCompile(`\\"viewCount\\":\\"(\d+)\\"`)
+var parseRegex = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})\t[^\t]*\t(\d+)($|\t)`)
 
 const endpoint = "https://www.googleapis.com/youtube/v3"
-const api_key_variable string = "YOUTUBE_API_KEY"
+const apiKeyVariable string = "YOUTUBE_API_KEY"
 
 type video struct {
 	id    string
@@ -66,7 +66,7 @@ var videos = []video{
 	},
 }
 
-func fetch_url(url string) ([]byte, error) {
+func fetchURL(url string) ([]byte, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -81,10 +81,10 @@ func fetch_url(url string) ([]byte, error) {
 	return body, nil
 }
 
-func video_stats(id string, api_key string) ([]byte, error) {
-	url := fmt.Sprintf("%s/videos?part=statistics&id=%s&key=%s", endpoint, id, api_key)
+func videoStats(id string, apiKey string) ([]byte, error) {
+	url := fmt.Sprintf("%s/videos?part=statistics&id=%s&key=%s", endpoint, id, apiKey)
 
-	json, err := fetch_url(url)
+	json, err := fetchURL(url)
 	if err != nil {
 		return nil, fmt.Errorf("Error fetching YouTube URL: %v\n", err)
 	}
@@ -92,7 +92,7 @@ func video_stats(id string, api_key string) ([]byte, error) {
 	return json, nil
 }
 
-func get_stat(json []byte, stat string) (string, error) {
+func getStat(json []byte, stat string) (string, error) {
 	s, err := jsonparser.GetUnsafeString(json, "items", "[0]", "statistics", stat)
 	if err != nil {
 		return "", fmt.Errorf("Error parsing JSON result for statistic %q: %v\n%s\n", stat, err, json)
@@ -101,13 +101,13 @@ func get_stat(json []byte, stat string) (string, error) {
 	return s, nil
 }
 
-func api_views(id string, api_key string) (string, error) {
-	json, err := video_stats(id, api_key)
+func apiViews(id string, apiKey string) (string, error) {
+	json, err := videoStats(id, apiKey)
 	if err != nil {
 		return "", err
 	}
 
-	views, err := get_stat(json, "viewCount")
+	views, err := getStat(json, "viewCount")
 	if err != nil {
 		return "", err
 	}
@@ -115,15 +115,15 @@ func api_views(id string, api_key string) (string, error) {
 	return views, nil
 }
 
-func scrape_views(id string) (string, error) {
-	url := scrape_url + id
+func scrapeViews(id string) (string, error) {
+	url := scrapeURL + id
 
-	data, err := fetch_url(url)
+	data, err := fetchURL(url)
 	if err != nil {
 		return "", fmt.Errorf("Error fetching YouTube URL: %v\n", err)
 	}
 
-	match := scrape_regex.FindSubmatch(data)
+	match := scrapeRegex.FindSubmatch(data)
 	if match == nil {
 		return "", fmt.Errorf("Couldn't scrape viewCount from URL: %q\n%s", url, data)
 	}
@@ -131,26 +131,26 @@ func scrape_views(id string) (string, error) {
 	return string(match[1]), nil
 }
 
-func fetch_views(id string, api_key string) (string, error) {
-	if api_key != "" {
-		s, err := api_views(id, api_key)
+func fetchViews(id string, apiKey string) (string, error) {
+	if apiKey != "" {
+		s, err := apiViews(id, apiKey)
 		if err == nil {
 			return s, nil
 		}
 
-		s, err2 := scrape_views(id)
+		s, err2 := scrapeViews(id)
 		if err2 == nil {
 			return s, nil
 		}
 
 		return "", fmt.Errorf("%v%v", err, err2)
 	} else {
-		return scrape_views(id)
+		return scrapeViews(id)
 	}
 }
 
-func video_views(id string, api_key string) (int64, error) {
-	s, err := fetch_views(id, api_key)
+func videoViews(id string, apiKey string) (int64, error) {
+	s, err := fetchViews(id, apiKey)
 	if err != nil {
 		return 0, err
 	}
@@ -163,7 +163,7 @@ func video_views(id string, api_key string) (int64, error) {
 	return i, nil
 }
 
-func append_to_file(file string, data []byte) error {
+func appendToFile(file string, data []byte) error {
 	// If the file doesn't exist, create it, or append to the file
 	f, err := os.OpenFile(file, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -183,9 +183,9 @@ func append_to_file(file string, data []byte) error {
 }
 
 func gather() error {
-	api_key := os.Getenv(api_key_variable)
-	if api_key != "" {
-		fmt.Printf("Using YouTube API key: %q\n", api_key)
+	apiKey := os.Getenv(apiKeyVariable)
+	if apiKey != "" {
+		fmt.Printf("Using YouTube API key: %q\n", apiKey)
 	} else {
 		fmt.Println("Scraping YouTube pages instead of using API calls.")
 	}
@@ -200,7 +200,7 @@ func gather() error {
 		for _, v := range videos {
 			var data string
 
-			views, err := video_views(v.id, api_key)
+			views, err := videoViews(v.id, apiKey)
 			if err != nil {
 				data = fmt.Sprintf("%s\t%s\tERROR: %v\n", t.Format(time.RFC3339), v.id, err)
 			} else {
@@ -208,7 +208,7 @@ func gather() error {
 			}
 
 			fmt.Print(data)
-			if err = append_to_file(v.id+".log", []byte(data)); err != nil {
+			if err = appendToFile(v.id+".log", []byte(data)); err != nil {
 				return err
 			}
 		}
@@ -216,13 +216,13 @@ func gather() error {
 }
 
 func max() error {
-	api_key := os.Getenv(api_key_variable)
+	apiKey := os.Getenv(apiKeyVariable)
 	for i := range videos {
 		var err error
 
 		v := &videos[i]
 		v.when = time.Now()
-		v.views, err = video_views(v.id, api_key)
+		v.views, err = videoViews(v.id, apiKey)
 		if err != nil {
 			return fmt.Errorf("Error on video %q (%s): %v\n", v.id, v.title, err)
 		}
@@ -239,46 +239,46 @@ func max() error {
 
 func billion(file string) error {
 	var line string
-	var err, file_err error
+	var err, fileErr error
 
-	f, file_err := os.Open(file)
-	if file_err != nil {
-		return fmt.Errorf("Error opening file %q: %v\n", file, file_err)
+	f, fileErr := os.Open(file)
+	if fileErr != nil {
+		return fmt.Errorf("Error opening file %q: %v\n", file, fileErr)
 	}
 	defer f.Close()
 
 	reader := bufio.NewReader(f)
 
-	var start_time, start_count, end_time, end_count string
-	for file_err == nil {
-		line, file_err = reader.ReadString('\n')
+	var startTime, startCount, endTime, endCount string
+	for fileErr == nil {
+		line, fileErr = reader.ReadString('\n')
 
-		if match := parse_regex.FindStringSubmatch(line); match != nil {
-			if start_time == "" {
-				start_time, start_count = match[1], match[2]
+		if match := parseRegex.FindStringSubmatch(line); match != nil {
+			if startTime == "" {
+				startTime, startCount = match[1], match[2]
 			} else {
-				end_time, end_count = match[1], match[2]
+				endTime, endCount = match[1], match[2]
 			}
 		}
 	}
-	if file_err != io.EOF {
-		return fmt.Errorf("Error reading file %q: %v\n", file, file_err)
+	if fileErr != io.EOF {
+		return fmt.Errorf("Error reading file %q: %v\n", file, fileErr)
 	}
 
 	var t1, t2 time.Time
-	if t1, err = time.Parse(time.RFC3339, start_time); err != nil {
-		return fmt.Errorf("Error parsing starting timestamp %q: %v\n", start_time, err)
+	if t1, err = time.Parse(time.RFC3339, startTime); err != nil {
+		return fmt.Errorf("Error parsing starting timestamp %q: %v\n", startTime, err)
 	}
-	if t2, err = time.Parse(time.RFC3339, end_time); err != nil {
-		return fmt.Errorf("Error parsing ending timestamp %q: %v\n", end_time, err)
+	if t2, err = time.Parse(time.RFC3339, endTime); err != nil {
+		return fmt.Errorf("Error parsing ending timestamp %q: %v\n", endTime, err)
 	}
 
 	var c1, c2 int64
-	if c1, err = strconv.ParseInt(start_count, 0, 64); err != nil {
-		return fmt.Errorf("Error converting starting view count %q into int64: %v", start_count, err)
+	if c1, err = strconv.ParseInt(startCount, 0, 64); err != nil {
+		return fmt.Errorf("Error converting starting view count %q into int64: %v", startCount, err)
 	}
-	if c2, err = strconv.ParseInt(end_count, 0, 64); err != nil {
-		return fmt.Errorf("Error converting ending view count %q into int64: %v", end_count, err)
+	if c2, err = strconv.ParseInt(endCount, 0, 64); err != nil {
+		return fmt.Errorf("Error converting ending view count %q into int64: %v", endCount, err)
 	}
 
 	fmt.Printf("Starting time: %v\n", t1)
