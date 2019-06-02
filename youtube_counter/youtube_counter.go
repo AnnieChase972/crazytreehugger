@@ -183,7 +183,7 @@ func append_to_file(file string, data []byte) error {
 }
 
 func gather() error {
-	api_key := os.Getenv("YOUTUBE_API_KEY")
+	api_key := os.Getenv(api_key_variable)
 	if api_key != "" {
 		fmt.Printf("Using YouTube API key: %q\n", api_key)
 	} else {
@@ -216,7 +216,7 @@ func gather() error {
 }
 
 func max() error {
-	api_key := os.Getenv("YOUTUBE_API_KEY")
+	api_key := os.Getenv(api_key_variable)
 	for i := range videos {
 		var err error
 
