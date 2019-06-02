@@ -34,6 +34,10 @@ var videos = []video{
 		title: "Ddu du-Ddu du",
 	},
 	video{
+		id:    "2S24-y0Ij3Y",
+		title: "Kill This Love",
+	},
+	video{
 		id:    "dISNgvVpWlo",
 		title: "Whistle",
 	},
