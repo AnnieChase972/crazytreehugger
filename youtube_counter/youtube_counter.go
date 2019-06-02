@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"github.com/buger/jsonparser"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -17,6 +19,7 @@ import (
 const scrape_url = "https://www.youtube.com/watch?v="
 
 var scrape_regex = regexp.MustCompile(`\\"viewCount\\":\\"(\d+)\\"`)
+var parse_regex = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})\t[^\t]*\t(\d+)($|\t)`)
 
 const endpoint = "https://www.googleapis.com/youtube/v3"
 const api_key_variable string = "YOUTUBE_API_KEY"
@@ -234,9 +237,62 @@ func max() error {
 	return nil
 }
 
+func billion(file string) error {
+	var line string
+	var err, file_err error
+
+	f, file_err := os.Open(file)
+	if file_err != nil {
+		return fmt.Errorf("Error opening file %q: %v\n", file, file_err)
+	}
+	defer f.Close()
+
+	reader := bufio.NewReader(f)
+
+	var start_time, start_count, end_time, end_count string
+	for file_err == nil {
+		line, file_err = reader.ReadString('\n')
+
+		if match := parse_regex.FindStringSubmatch(line); match != nil {
+			if start_time == "" {
+				start_time, start_count = match[1], match[2]
+			} else {
+				end_time, end_count = match[1], match[2]
+			}
+		}
+	}
+	if file_err != io.EOF {
+		return fmt.Errorf("Error reading file %q: %v\n", file, file_err)
+	}
+
+	var t1, t2 time.Time
+	if t1, err = time.Parse(time.RFC3339, start_time); err != nil {
+		return fmt.Errorf("Error parsing starting timestamp %q: %v\n", start_time, err)
+	}
+	if t2, err = time.Parse(time.RFC3339, end_time); err != nil {
+		return fmt.Errorf("Error parsing ending timestamp %q: %v\n", end_time, err)
+	}
+
+	var c1, c2 int64
+	if c1, err = strconv.ParseInt(start_count, 0, 64); err != nil {
+		return fmt.Errorf("Error converting starting view count %q into int64: %v", start_count, err)
+	}
+	if c2, err = strconv.ParseInt(end_count, 0, 64); err != nil {
+		return fmt.Errorf("Error converting ending view count %q into int64: %v", end_count, err)
+	}
+
+	fmt.Printf("Starting time: %v\n", t1)
+	fmt.Printf("Starting count: %v\n", c1)
+	fmt.Printf("Ending time: %v\n", t2)
+	fmt.Printf("Ending count: %v\n", c2)
+
+	return nil
+}
+
 func main() {
 	gatherPtr := flag.Bool("gather", false, "gather data")
 	maxPtr := flag.Bool("max", false, "sort by max views")
+	billionPtr := flag.Bool("billion", false, "when ddu-du ddu-du hits a billion views")
 	flag.Parse()
 	switch {
 	case *gatherPtr:
@@ -245,6 +301,10 @@ func main() {
 		}
 	case *maxPtr:
 		if err := max(); err != nil {
+			log.Fatal(err)
+		}
+	case *billionPtr:
+		if err := billion(videos[0].id + ".log"); err != nil {
 			log.Fatal(err)
 		}
 	default:
