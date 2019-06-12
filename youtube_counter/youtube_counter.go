@@ -286,6 +286,24 @@ func billion(file string) error {
 	fmt.Printf("Ending time: %v\n", t2)
 	fmt.Printf("Ending count: %v\n", c2)
 
+	difference := t2.Sub(t1)
+	fmt.Printf("duration = %v\n", difference)
+
+	days := difference.Hours() / 24
+	fmt.Printf("number of days = %v\n", days)
+
+	increase := c2 - c1
+	fmt.Printf("view difference = %v\n", increase)
+
+	average := float64(increase) / days
+	fmt.Printf("average number of views per day = %f\n", average)
+
+	remainingDays := float64(1000000000-c2) / average
+	fmt.Printf("days it takes to hit a billion views = %f\n", remainingDays)
+
+	targetDate := t2.Add(time.Duration(remainingDays * 24 * float64(time.Hour)))
+	fmt.Printf("target date to hit a billion = %v\n", targetDate)
+
 	return nil
 }
 
