@@ -5,6 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"github.com/buger/jsonparser"
+	"gonum.org/v1/plot"
+	"gonum.org/v1/plot/plotter"
+	"gonum.org/v1/plot/plotutil"
+	"gonum.org/v1/plot/vg"
 	"io"
 	"io/ioutil"
 	"log"
@@ -23,6 +27,8 @@ var parseRegex = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d
 
 const endpoint = "https://www.googleapis.com/youtube/v3"
 const apiKeyVariable string = "YOUTUBE_API_KEY"
+
+const plotFile = "/mnt/c/Users/Cassie/Desktop/points.png"
 
 type video struct {
 	id    string
@@ -237,49 +243,56 @@ func max() error {
 	return nil
 }
 
-func billion(file string) error {
+func videoData(file string) ([]video, error) {
 	var line string
-	var err, fileErr error
+	var fileErr error
+	var data []video
 
 	f, fileErr := os.Open(file)
 	if fileErr != nil {
-		return fmt.Errorf("Error opening file %q: %v\n", file, fileErr)
+		return nil, fmt.Errorf("Error opening file %q: %v\n", file, fileErr)
 	}
 	defer f.Close()
 
 	reader := bufio.NewReader(f)
 
-	var startTime, startCount, endTime, endCount string
 	for fileErr == nil {
 		line, fileErr = reader.ReadString('\n')
 
 		if match := parseRegex.FindStringSubmatch(line); match != nil {
-			if startTime == "" {
-				startTime, startCount = match[1], match[2]
-			} else {
-				endTime, endCount = match[1], match[2]
+			timeString, countString := match[1], match[2]
+
+			timeValue, err := time.Parse(time.RFC3339, timeString)
+			if err != nil {
+				return nil, fmt.Errorf("Error parsing timestamp %q: %v\n", timeString, err)
 			}
+
+			countValue, err := strconv.ParseInt(countString, 0, 64)
+			if err != nil {
+				return nil, fmt.Errorf("Error converting view count %q into int64: %v", countString, err)
+			}
+
+			data = append(data, video{when: timeValue, views: countValue})
 		}
 	}
 	if fileErr != io.EOF {
-		return fmt.Errorf("Error reading file %q: %v\n", file, fileErr)
+		return nil, fmt.Errorf("Error reading file %q: %v\n", file, fileErr)
 	}
 
-	var t1, t2 time.Time
-	if t1, err = time.Parse(time.RFC3339, startTime); err != nil {
-		return fmt.Errorf("Error parsing starting timestamp %q: %v\n", startTime, err)
-	}
-	if t2, err = time.Parse(time.RFC3339, endTime); err != nil {
-		return fmt.Errorf("Error parsing ending timestamp %q: %v\n", endTime, err)
+	return data, nil
+}
+
+func billion(file string) error {
+	data, err := videoData(file)
+	if err != nil {
+		return err
 	}
 
-	var c1, c2 int64
-	if c1, err = strconv.ParseInt(startCount, 0, 64); err != nil {
-		return fmt.Errorf("Error converting starting view count %q into int64: %v", startCount, err)
-	}
-	if c2, err = strconv.ParseInt(endCount, 0, 64); err != nil {
-		return fmt.Errorf("Error converting ending view count %q into int64: %v", endCount, err)
-	}
+	t1 := data[0].when
+	c1 := data[0].views
+
+	t2 := data[len(data)-1].when
+	c2 := data[len(data)-1].views
 
 	fmt.Printf("Starting time: %v\n", t1)
 	fmt.Printf("Starting count: %v\n", c1)
@@ -307,10 +320,56 @@ func billion(file string) error {
 	return nil
 }
 
+func viewPoints(file string) (plotter.XYs, error) {
+	data, err := videoData(file)
+	if err != nil {
+		return nil, err
+	}
+
+	//timeConv := plot.UnixTimeIn(time.Local)
+
+	pts := make(plotter.XYs, len(data))
+	for i := range pts {
+		pts[i].X = float64(data[i].when.Unix())
+		pts[i].Y = float64(data[i].views)
+	}
+
+	return pts, nil
+}
+
+func plotViews(file, outFile string) error {
+	pts, err := viewPoints(file)
+	if err != nil {
+		return err
+	}
+
+	p, err := plot.New()
+	if err != nil {
+		return err
+	}
+
+	p.Title.Text = "Blackpink music video views"
+	p.X.Label.Text = "Date"
+	p.Y.Label.Text = "Views"
+
+	err = plotutil.AddLinePoints(p, file, pts)
+	if err != nil {
+		return err
+	}
+
+	// Save the plot to a PNG file.
+	if err = p.Save(9*vg.Inch, 9*vg.Inch, outFile); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func main() {
 	gatherPtr := flag.Bool("gather", false, "gather data")
 	maxPtr := flag.Bool("max", false, "sort by max views")
 	billionPtr := flag.Bool("billion", false, "when ddu-du ddu-du hits a billion views")
+	plotPtr := flag.Bool("plot", false, "plot views of ddu-du ddu-du")
 	flag.Parse()
 	switch {
 	case *gatherPtr:
@@ -323,6 +382,10 @@ func main() {
 		}
 	case *billionPtr:
 		if err := billion(videos[0].id + ".log"); err != nil {
+			log.Fatal(err)
+		}
+	case *plotPtr:
+		if err := plotViews(videos[0].id+".log", plotFile); err != nil {
 			log.Fatal(err)
 		}
 	default:
