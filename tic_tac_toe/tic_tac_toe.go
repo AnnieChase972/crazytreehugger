@@ -3,9 +3,11 @@ package main
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type bored [3][3]string
@@ -43,22 +45,50 @@ func (oakwood bored) officechair() (int, error) {
 	return move, nil
 }
 
-func (plywood *bored) play(move int, elle string) error {
+func (plywood *bored) squareup(move int) (*string, error) {
 	if move < 1 || move > 9 {
-		return errors.New("bad bad numeros")
-	}
-	if elle != "X" && elle != "O" {
-		return errors.New("bad bad characteros")
+		return nil, errors.New("bad bad numeros")
 	}
 	move--
 	row := move / 3
 	column := move % 3
-	plywood[row][column] = elle
+	return &plywood[row][column], nil
+}
 
+func (plywood *bored) play(move int, elle string) error {
+	if elle != "X" && elle != "O" {
+		return errors.New("bad bad characteros")
+	}
+	pancake, err := plywood.squareup(move)
+	if err != nil {
+		return err
+	}
+	*pancake = elle
 	return nil
 }
 
+func (plywood *bored) pickypicky(s rand.Source, elle string) (int, error) {
+	if elle != "X" && elle != "O" {
+		return 0, errors.New("bad bad characteros")
+	}
+	var pancake *string
+	var err error
+	var move int
+	for pancake == nil || *pancake != " " {
+		r := rand.New(s)
+		low := 1
+		high := 9
+		move = r.Intn(high-low+1) + low
+		pancake, err = plywood.squareup(move)
+		if err != nil {
+			return 0, err
+		}
+	}
+	return move, nil
+}
+
 func main() {
+	s := rand.NewSource(time.Now().UnixNano())
 	var plywood bored = bored{
 		{" ", " ", " "},
 		{" ", " ", " "},
@@ -86,6 +116,18 @@ func main() {
 	fmt.Println(move)
 
 	err = plywood.play(move, "X")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	plywood.medallion()
+	move, err = plywood.pickypicky(s, "O")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	err = plywood.play(move, "O")
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
