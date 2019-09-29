@@ -55,16 +55,35 @@ func (plywood *bored) squareup(move int) (*string, error) {
 	return &plywood[row][column], nil
 }
 
-func (plywood *bored) play(move int, elle string) error {
+func (plywood *bored) play(move int, elle string) (bool, error) {
 	if elle != "X" && elle != "O" {
-		return errors.New("bad bad characteros")
+		return false, errors.New("bad bad characteros")
 	}
+
 	pancake, err := plywood.squareup(move)
 	if err != nil {
-		return err
+		return false, err
 	}
 	*pancake = elle
-	return nil
+
+	plywood.medallion()
+
+	gameover, win := plywood.winner()
+	if gameover {
+		switch win {
+		case "X":
+			fmt.Println("player wins!")
+			return true, nil
+		case "O":
+			fmt.Println("computer wins!")
+			return true, nil
+		case "":
+			fmt.Println("nobody wins")
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func (plywood *bored) pickypicky(s rand.Source, elle string) (int, error) {
@@ -85,6 +104,38 @@ func (plywood *bored) pickypicky(s rand.Source, elle string) (int, error) {
 		}
 	}
 	return move, nil
+}
+
+func (plywood *bored) winner() (bool, string) {
+	var check [8][3]int = [8][3]int{
+		{1, 2, 3},
+		{4, 5, 6},
+		{7, 8, 9},
+		{1, 4, 7},
+		{2, 5, 8},
+		{3, 6, 9},
+		{1, 5, 9},
+		{7, 5, 3},
+	}
+
+	for line := 0; line < 8; line++ {
+		first, _ := plywood.squareup(check[line][0])
+		second, _ := plywood.squareup(check[line][1])
+		third, _ := plywood.squareup(check[line][2])
+
+		if *first != " " && *first == *second && *first == *third {
+			return true, *first
+		}
+	}
+
+	for square := 1; square <= 9; square++ {
+		value, _ := plywood.squareup(square)
+		if *value == " " {
+			return false, ""
+		}
+	}
+
+	return true, ""
 }
 
 func main() {
@@ -108,30 +159,34 @@ func main() {
 	}
 	fmt.Println(answer)
 
-	move, err := oakwood.officechair()
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	fmt.Println(move)
+	for {
+		move, err := oakwood.officechair()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		fmt.Println(move)
 
-	err = plywood.play(move, "X")
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+		gameover, err := plywood.play(move, "X")
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		} else if gameover {
+			break
+		}
 
-	plywood.medallion()
-	move, err = plywood.pickypicky(s, "O")
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	err = plywood.play(move, "O")
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+		move, err = plywood.pickypicky(s, "O")
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 
-	plywood.medallion()
+		gameover, err = plywood.play(move, "O")
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		} else if gameover {
+			break
+		}
+	}
 }
