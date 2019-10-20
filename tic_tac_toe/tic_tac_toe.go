@@ -55,7 +55,7 @@ func (plywood *bored) squareup(move int) (*string, error) {
 	return &plywood[row][column], nil
 }
 
-func (plywood *bored) play(move int, elle string) (bool, error) {
+func (plywood *bored) play(move int, elle string, player string, computer string) (bool, error) {
 	if elle != "X" && elle != "O" {
 		return false, errors.New("bad bad characteros")
 	}
@@ -76,10 +76,10 @@ func (plywood *bored) play(move int, elle string) (bool, error) {
 	gameover, win := plywood.winner()
 	if gameover {
 		switch win {
-		case "X":
+		case player:
 			fmt.Println("player wins!")
 			return true, nil
-		case "O":
+		case computer:
 			fmt.Println("computer wins!")
 			return true, nil
 		case "":
@@ -157,36 +157,58 @@ func main() {
 		{"7", "8", "9"},
 	}
 
-	answer, err := something("player or computer first? ")
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	fmt.Println(answer)
+	var player, computer string
 
 	for {
-		move, err := oakwood.officechair()
+		answer, err := something("player or computer first? ")
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		fmt.Println(move)
-
-		gameover, err := plywood.play(move, "X")
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		} else if gameover {
+		if strings.ToUpper(answer) == "P" {
+			player = "X"
+			computer = "O"
+			break
+		} else if strings.ToUpper(answer) == "C" {
+			computer = "X"
+			player = "O"
 			break
 		}
+	}
 
-		move, err = plywood.pickypicky(s, "O")
+	first := true
+
+	for {
+		var move int
+		var err error
+		var gameover bool
+
+		if !first || player == "X" {
+			move, err = oakwood.officechair()
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			fmt.Println(move)
+
+			gameover, err := plywood.play(move, player, player, computer)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			} else if gameover {
+				break
+			}
+		}
+
+		first = false
+
+		move, err = plywood.pickypicky(s, computer)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 
-		gameover, err = plywood.play(move, "O")
+		gameover, err = plywood.play(move, computer, player, computer)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
