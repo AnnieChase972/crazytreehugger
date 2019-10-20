@@ -64,6 +64,11 @@ func (plywood *bored) play(move int, elle string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
+	if *pancake != " " {
+		return false, errors.New("no no play there")
+	}
+
 	*pancake = elle
 
 	plywood.medallion()
